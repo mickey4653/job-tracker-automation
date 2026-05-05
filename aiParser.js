@@ -39,6 +39,8 @@ Return JSON only, no markdown, no explanation:
 EMAIL:
 Subject: ${email.subject}
 From: ${email.from}
+Body:
+${email.body || "(no body)"}
 `;
 
   const response = await client.chat.completions.create({

@@ -2,7 +2,7 @@ require("dotenv").config();
 const { authorize } = require("./gmailAuth");
 const { getEmails } = require("./gmailFetch");
 const { parseJobWithAI } = require("./aiParser");
-const { createJobEntry, jobExists } = require("./notion");
+const { createJobEntry, findExistingJob, updateJobEntry } = require("./notion");
 const { scoreJob } = require("./scorer");
 
 async function normalize(job) {
@@ -72,14 +72,7 @@ async function run() {
     }
     seen.add(key);
 
-    // Step 4: Dedupe — cross-run (check Notion)
-    const exists = await jobExists(cleanJob.company, cleanJob.role);
-    if (exists) {
-      console.log("⏭️ Already in Notion, skipping:", key);
-      continue;
-    }
-
-    // Step 5: Score + Priority
+    // Step 5: Score + Priority (before Notion check so update has fresh score)
     const scoredJob = { ...cleanJob, score: scoreJob(cleanJob) };
     const priority = getPriority(scoredJob.score);
     const followUpDate = getFollowUpDate();
@@ -91,7 +84,20 @@ async function run() {
       console.log("🚨 HIGH PRIORITY JOB DETECTED:", scoredJob.company, "—", scoredJob.role);
     }
 
-    // Step 6: Insert
+    // Step 6: Dedupe — cross-run (check Notion, update if exists)
+    const existingPageId = await findExistingJob(cleanJob.company, cleanJob.role);
+    if (existingPageId) {
+      console.log("🔄 Already exists, updating Last Contacted:", key);
+      await updateJobEntry(existingPageId, {
+        score: scoredJob.score,
+        priority,
+        followUpDate,
+      });
+      console.log("✅ Updated in Notion");
+      continue;
+    }
+
+    // Step 7: Insert new entry
     await createJobEntry({
       company: scoredJob.company,
       role: scoredJob.role,

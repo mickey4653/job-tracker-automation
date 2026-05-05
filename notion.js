@@ -6,7 +6,8 @@ const notion = new Client({
   auth: process.env.NOTION_API_KEY,
 });
 
-async function jobExists(company, role) {
+// Returns the existing page ID if found, otherwise null
+async function findExistingJob(company, role) {
   const response = await notion.databases.query({
     database_id: process.env.DATABASE_ID,
     filter: {
@@ -23,12 +24,32 @@ async function jobExists(company, role) {
     },
   });
 
-  return response.results.length > 0;
+  return response.results.length > 0 ? response.results[0].id : null;
+}
+
+// Update Last Contacted date (and optionally score/priority) on an existing entry
+async function updateJobEntry(pageId, data) {
+  return await notion.pages.update({
+    page_id: pageId,
+    properties: {
+      "Last Contacted": {
+        date: { start: new Date().toISOString() },
+      },
+      Score: {
+        number: data.score ?? 0,
+      },
+      Priority: {
+        select: { name: data.priority || "Low" },
+      },
+      "Follow Up Date": {
+        date: { start: data.followUpDate },
+      },
+    },
+  });
 }
 
 async function createJobEntry(data) {
-
- if (!data.company || !data.role) {
+  if (!data.company || !data.role) {
     console.log("⚠️ Skipping incomplete data:", data);
     return;
   }
@@ -64,4 +85,4 @@ async function createJobEntry(data) {
   });
 }
 
-module.exports = { createJobEntry, jobExists };
+module.exports = { createJobEntry, findExistingJob, updateJobEntry };
