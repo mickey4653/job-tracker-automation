@@ -2,7 +2,7 @@ require("dotenv").config();
 const { authorize } = require("./gmailAuth");
 const { getEmails } = require("./gmailFetch");
 const { parseJobWithAI } = require("./aiParser");
-const { createJobEntry, findExistingJob, updateJobEntry } = require("./notion");
+const { createJobEntry, findExistingJob, updateJobEntry, updateStatus } = require("./notion");
 const { scoreJob } = require("./scorer");
 
 async function normalize(job) {
@@ -25,6 +25,30 @@ function getFollowUpDate() {
   const date = new Date();
   date.setDate(date.getDate() + 3);
   return date.toISOString();
+}
+
+// Job boards and aggregators — tag source instead of blocking
+const JOB_BOARDS = [
+  "indeed",
+  "linkedin",
+  "handshake",
+  "glassdoor",
+  "ziprecruiter",
+  "monster",
+  "careerbuilder",
+  "simplyhired",
+  "dice",
+  "github",
+  "great value hiring",
+  "code the future of banking",
+];
+
+function getSource(company) {
+  const lower = company.toLowerCase();
+  if (JOB_BOARDS.some((board) => lower.includes(board))) {
+    return company; // use the job board name as the source
+  }
+  return "Gmail";
 }
 
 function isValidJob(job) {
@@ -57,6 +81,33 @@ async function run() {
     const cleanJob = await normalize(job);
 
     console.log("🤖 AI Parsed:", cleanJob);
+
+    // Step 2: Filter non-job emails
+    if (!cleanJob.isJobEmail) {
+      console.log("🚫 Not a job email, skipping:", email.subject);
+      continue;
+    }
+
+    // Step 2b: Handle application status updates
+    if (cleanJob.applicationUpdate) {
+      console.log("📬 Application update detected:", cleanJob.company);
+      const existingPageId = await findExistingJob(cleanJob.company, cleanJob.role || "");
+
+      if (existingPageId) {
+        await updateJobEntry(existingPageId, {
+          score: 0,
+          priority: "Low",
+          followUpDate: getFollowUpDate(),
+          source: getSource(cleanJob.company),
+          salary: "",
+          note: email.subject,
+        });
+        console.log("📋 Note added to Notion — update status manually:", cleanJob.company);
+      } else {
+        console.log("⚠️ No existing entry found for:", cleanJob.company, "— skipping");
+      }
+      continue;
+    }
 
     // Step 3: Validate
     if (!isValidJob(cleanJob)) {
@@ -92,6 +143,9 @@ async function run() {
         score: scoredJob.score,
         priority,
         followUpDate,
+        source: getSource(scoredJob.company),
+        salary: scoredJob.salary || "",
+        summary: scoredJob.summary || "",
       });
       console.log("✅ Updated in Notion");
       continue;
@@ -101,11 +155,13 @@ async function run() {
     await createJobEntry({
       company: scoredJob.company,
       role: scoredJob.role,
-      source: "Gmail",
-      status: "Applied",
+      source: getSource(scoredJob.company),
+      status: "New",
       score: scoredJob.score,
       priority,
       followUpDate,
+      salary: scoredJob.salary || "",
+      summary: scoredJob.summary || "",
     });
 
     console.log("✅ Sent to Notion");

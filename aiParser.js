@@ -28,12 +28,40 @@ LOCATION RULES:
 - Clean format only: "City, State" or "Remote"
 - Normalize "100% Remote", "Remote role", "Fully Remote" → "Remote"
 
+SALARY RULES:
+- Extract salary or rate if mentioned (e.g. "$120k", "$60/hr")
+- If not mentioned → return ""
+
+SUMMARY RULES:
+- Write 1-2 sentences max describing what this job opportunity is about
+- Include role, company, location, and salary if available
+- Keep it factual, no fluff
+
+JOB EMAIL DETECTION:
+- Set "isJobEmail" to true for:
+  - Job opportunity or recruiter outreach emails
+  - Application status updates (e.g. "update on your application", "your application status", "we reviewed your application")
+  - Interview invitations or scheduling emails
+  - Offer letters
+- Set "isJobEmail" to false for:
+  - Account notifications (GitHub OAuth, password resets)
+  - Marketing emails, newsletters, career advice content
+  - Scholarship or internship program announcements
+  - Any email with no connection to a specific job or employer
+
+- For application status emails: extract the company name, set role to "" if unknown, set "applicationUpdate" to true
+- For all other job emails: set "applicationUpdate" to false
+
 Return JSON only, no markdown, no explanation:
 {
+  "isJobEmail": true,
+  "applicationUpdate": false,
   "company": "",
   "role": "",
   "location": "",
-  "seniority": ""
+  "seniority": "",
+  "salary": "",
+  "summary": ""
 }
 
 EMAIL:

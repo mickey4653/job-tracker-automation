@@ -27,9 +27,36 @@ async function findExistingJob(company, role) {
   return response.results.length > 0 ? response.results[0].id : null;
 }
 
-// Update Last Contacted date (and optionally score/priority) on an existing entry
+// Append a timestamped note to the page body
+async function appendNote(pageId, message) {
+  const timestamp = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+  await notion.blocks.children.append({
+    block_id: pageId,
+    children: [
+      {
+        object: "block",
+        type: "paragraph",
+        paragraph: {
+          rich_text: [
+            {
+              type: "text",
+              text: { content: `📬 ${timestamp} — ${message}` },
+            },
+          ],
+        },
+      },
+    ],
+  });
+}
+
+// Update existing entry with latest data
 async function updateJobEntry(pageId, data) {
-  return await notion.pages.update({
+  await notion.pages.update({
     page_id: pageId,
     properties: {
       "Last Contacted": {
@@ -43,6 +70,33 @@ async function updateJobEntry(pageId, data) {
       },
       "Follow Up Date": {
         date: { start: data.followUpDate },
+      },
+      Source: {
+        select: { name: data.source || "Gmail" },
+      },
+      ...(data.salary && {
+        Salary: {
+          rich_text: [{ text: { content: data.salary } }],
+        },
+      }),
+    },
+  });
+
+  // Append note to page body if provided
+  if (data.note) {
+    await appendNote(pageId, data.note);
+  }
+}
+
+async function updateStatus(pageId, status) {
+  return await notion.pages.update({
+    page_id: pageId,
+    properties: {
+      Status: {
+        select: { name: status },
+      },
+      "Last Contacted": {
+        date: { start: new Date().toISOString() },
       },
     },
   });
@@ -64,10 +118,10 @@ async function createJobEntry(data) {
         rich_text: [{ text: { content: data.role } }],
       },
       Status: {
-        select: { name: data.status || "Applied" },
+        select: { name: data.status || "New" },
       },
       Source: {
-        select: { name: data.source || "Email" },
+        select: { name: data.source || "Gmail" },
       },
       "Last Contacted": {
         date: { start: new Date().toISOString() },
@@ -81,8 +135,25 @@ async function createJobEntry(data) {
       "Follow Up Date": {
         date: { start: data.followUpDate },
       },
+      ...(data.salary && {
+        Salary: {
+          rich_text: [{ text: { content: data.salary } }],
+        },
+      }),
     },
+    // Page body — AI summary visible when you open the entry
+    children: data.summary
+      ? [
+          {
+            object: "block",
+            type: "paragraph",
+            paragraph: {
+              rich_text: [{ type: "text", text: { content: data.summary } }],
+            },
+          },
+        ]
+      : [],
   });
 }
 
-module.exports = { createJobEntry, findExistingJob, updateJobEntry };
+module.exports = { createJobEntry, findExistingJob, updateJobEntry, updateStatus, appendNote };
