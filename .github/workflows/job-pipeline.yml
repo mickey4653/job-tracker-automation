@@ -1,0 +1,42 @@
+name: Job Tracker Pipeline
+
+on:
+  schedule:
+    # Runs every day at 8:00 AM UTC (adjust to your timezone)
+    - cron: "0 8 * * *"
+  workflow_dispatch: # allows manual trigger from GitHub UI
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: job-tracker-automation/package-lock.json
+
+      - name: Install dependencies
+        working-directory: job-tracker-automation
+        run: npm install
+
+      - name: Write credentials.json from secret
+        working-directory: job-tracker-automation
+        run: echo "${{ secrets.GMAIL_CREDENTIALS }}" | base64 --decode > credentials.json
+
+      - name: Write token.json from secret
+        working-directory: job-tracker-automation
+        run: echo "${{ secrets.GMAIL_TOKEN }}" | base64 --decode > token.json
+
+      - name: Run job pipeline
+        working-directory: job-tracker-automation
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          DATABASE_ID: ${{ secrets.DATABASE_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: node runPipeline.js
