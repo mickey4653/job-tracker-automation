@@ -1,0 +1,19 @@
+{
+  "name": "job-tracker-automation",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "pipeline": "node runPipeline.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "dotenv": "^17.4.2",
+    "googleapis": "^171.4.0",
+    "openai": "^6.36.0"
+  }
+}
