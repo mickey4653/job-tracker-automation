@@ -1,22 +1,22 @@
 # 🧠 Job Tracker Automation
 
-An intelligent job opportunity pipeline that reads your Gmail, extracts structured job data using AI, scores each opportunity, and logs everything to a Notion dashboard — automatically.
+An intelligent job opportunity pipeline that reads your Gmail, extracts structured job data using AI, scores each opportunity, and logs everything to a Notion dashboard automatically.
 
 ---
 
 ## What It Does
 
 1. **Connects to Gmail** via OAuth and fetches up to 50 recent emails matching job-related keywords
-2. **Detects email type** — distinguishes job opportunities, application updates, and non-job emails
+2. **Detects email type** - distinguishes job opportunities, application updates, and non-job emails
 3. **Parses each email with GPT-4o-mini** to extract company, role, location, seniority, salary, and a summary
 4. **Normalizes** messy AI output (e.g. "100% Remote" → "Remote")
-5. **Validates** the result — blocks garbage like "Unknown Role" or missing company
-6. **Deduplicates** — skips jobs already seen in the current run or already in Notion
+5. **Validates** the result - blocks garbage like "Unknown Role" or missing company
+6. **Deduplicates** - skips jobs already seen in the current run or already in Notion
 7. **Scores** each job based on seniority, company, and location signals
 8. **Assigns priority** (High / Medium / Low) and a 3-day follow-up date
-9. **Tags source** — job board emails (Indeed, LinkedIn, Handshake, etc.) are tagged with the board name so you can check them manually
-10. **Sends everything to Notion** — all fields populated, AI summary written to the page body
-11. **Handles application updates** — when a company emails you an update, it appends a timestamped note to the Notion page body and refreshes Last Contacted
+9. **Tags source** - job board emails (Indeed, LinkedIn, Handshake, etc.) are tagged with the board name so you can check them manually
+10. **Sends everything to Notion** - all fields populated, AI summary written to the page body
+11. **Handles application updates** - when a company emails you an update, it appends a timestamped note to the Notion page body and refreshes Last Contacted
 12. **Sends a weekly summary email** every Sunday with top scored jobs, high priority count, and follow-up reminders
 
 ---
@@ -38,7 +38,7 @@ Gmail → AI Parse → Find Existing Entry → Append Note to Page Body
 
 ```
 job-tracker-automation/
-├── runPipeline.js      # Main entry point — orchestrates the full pipeline
+├── runPipeline.js      # Main entry point - orchestrates the full pipeline
 ├── gmailAuth.js        # Google OAuth2 authentication flow
 ├── gmailFetch.js       # Fetches job-related emails from Gmail (up to 50)
 ├── aiParser.js         # GPT-4o-mini prompt + structured extraction
@@ -75,9 +75,9 @@ The pipeline sets all new entries to `New`. You update the status manually in No
 
 ### Recommended Views
 
-- **🔥 High Priority Jobs** — Filter: `Score ≥ 7`, Sort: Score descending
-- **⏳ Needs Follow-up** — Filter: `Follow Up Date` within next 5 days + `Status = Applied`
-- **📋 All Jobs Pipeline** — Group by: `Status`
+- **🔥 High Priority Jobs** - Filter: `Score ≥ 7`, Sort: Score descending
+- **⏳ Needs Follow-up** - Filter: `Follow Up Date` within next 5 days + `Status = Applied`
+- **📋 All Jobs Pipeline** - Group by: `Status`
 
 ### Page Body
 When you open any entry in Notion, the page body contains:
